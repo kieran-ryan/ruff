@@ -57,11 +57,15 @@ pub(crate) fn invalid_module_name(
     if !PySourceType::try_from_path(path).is_some_and(PySourceType::is_py_file_or_stub) {
         return None;
     }
+    println!("Path:    {:?}", path);
 
     if let Some(package) = package {
+        println!("Package: True");
         let module_name = if is_module_file(path) {
+            println!("Module:  True");
             package.path().file_name().unwrap().to_string_lossy()
         } else {
+            println!("Module:  False");
             path.file_stem().unwrap().to_string_lossy()
         };
 
@@ -69,12 +73,15 @@ pub(crate) fn invalid_module_name(
         // with a digit (e.g., `0001_initial.py`), to support common conventions used by Django
         // and other frameworks.
         let is_valid_module_name = if is_migration_file(path) {
+            println!("Valid:   True");
             is_migration_name(&module_name)
         } else {
+            println!("Valid:   False");
             is_module_name(&module_name)
         };
 
         if !is_valid_module_name {
+            println!("Not valid module name");
             // Ignore any explicitly-allowed names.
             if ignore_names.matches(&module_name) {
                 return None;
@@ -85,6 +92,36 @@ pub(crate) fn invalid_module_name(
                 },
                 TextRange::default(),
             ));
+        } else {
+            println!("Valid module name");
+        }
+    } else {
+        println!("Package: False");
+        let module_name = path.file_stem().unwrap().to_string_lossy();
+
+        let is_valid_module_name = if is_migration_file(path) {
+            println!("Valid:   True");
+            is_migration_name(&module_name)
+        } else {
+            println!("Valid:   False");
+            is_module_name(&module_name)
+        };
+
+        if !is_valid_module_name {
+            println!("Not valid module name");
+            // Ignore any explicitly-allowed names.
+            if ignore_names.matches(&module_name) {
+                println!("Ignores");
+                return None;
+            }
+            return Some(Diagnostic::new(
+                InvalidModuleName {
+                    name: module_name.to_string(),
+                },
+                TextRange::default(),
+            ));
+        } else {
+            println!("Valid module name");
         }
     }
 
